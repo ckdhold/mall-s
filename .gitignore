@@ -1,6 +1,9 @@
 # Maven #
 target/
 
+# Docker local data #
+docker/data/
+
 # IDEA #
 .idea/
 *.iml

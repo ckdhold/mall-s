@@ -1,0 +1,211 @@
+# mall 本地 Docker 部署（Windows / Linux 通用）
+# 后台 + 管理前端：docker compose up -d
+# 仅基础设施：docker compose up -d mysql redis minio
+# 含搜索/门户：docker compose --profile full up -d
+# 访问：管理后台 http://localhost:8090  |  API http://localhost:8088
+name: mall
+
+networks:
+  mall-net:
+    driver: bridge
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mall-mysql
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mall
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./docker/data/mysql:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+      - ./document/sql/mall.sql:/docker-entrypoint-initdb.d/01-mall.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks:
+      mall-net:
+        aliases:
+          - db
+
+  redis:
+    image: redis:7
+    container_name: mall-redis
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./docker/data/redis:/data
+    networks:
+      mall-net:
+        aliases:
+          - redis
+
+  minio:
+    image: minio/minio:latest
+    container_name: mall-minio
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9090:9000"
+      - "9001:9001"
+    volumes:
+      - ./docker/data/minio:/data
+    networks:
+      mall-net:
+        aliases:
+          - minio
+
+  mall-admin:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        MODULE: mall-admin
+        JAR_FILE: mall-admin-1.0-SNAPSHOT.jar
+    image: mall/mall-admin:1.0-SNAPSHOT
+    container_name: mall-admin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    ports:
+      - "8088:8080"
+    environment:
+      TZ: Asia/Shanghai
+      MINIO_ENDPOINT: http://minio:9000
+    volumes:
+      - ./docker/data/logs/mall-admin:/var/logs
+    networks:
+      - mall-net
+
+  mall-admin-web:
+    build:
+      context: ./mall-admin-web-s
+      dockerfile: Dockerfile
+      args:
+        VITE_BASE_SERVER_URL: http://localhost:8088
+        VITE_USE_OSS: "false"
+        VITE_MINIO_UPLOAD_URL: /minio/upload
+    image: mall/mall-admin-web:3.0.0
+    container_name: mall-admin-web
+    restart: unless-stopped
+    depends_on:
+      mall-admin:
+        condition: service_started
+    ports:
+      - "8090:80"
+    networks:
+      - mall-net
+
+  mongo:
+    profiles: ["full"]
+    image: mongo:5
+    container_name: mall-mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./docker/data/mongo:/data/db
+    networks:
+      mall-net:
+        aliases:
+          - mongo
+
+  rabbitmq:
+    profiles: ["full"]
+    image: rabbitmq:3.10-management
+    container_name: mall-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./docker/data/rabbitmq:/var/lib/rabbitmq
+    networks:
+      mall-net:
+        aliases:
+          - rabbit
+
+  elasticsearch:
+    profiles: ["full"]
+    image: elasticsearch:7.17.3
+    container_name: mall-elasticsearch
+    environment:
+      - cluster.name=elasticsearch
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./docker/data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      mall-net:
+        aliases:
+          - es
+
+  mall-search:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        MODULE: mall-search
+        JAR_FILE: mall-search-1.0-SNAPSHOT.jar
+    image: mall/mall-search:1.0-SNAPSHOT
+    container_name: mall-search
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - elasticsearch
+    ports:
+      - "8081:8081"
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_ELASTICSEARCH_URIS: http://es:9200
+    volumes:
+      - ./docker/data/logs/mall-search:/var/logs
+    networks:
+      - mall-net
+
+  mall-portal:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        MODULE: mall-portal
+        JAR_FILE: mall-portal-1.0-SNAPSHOT.jar
+    image: mall/mall-portal:1.0-SNAPSHOT
+    container_name: mall-portal
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+      - mongo
+      - rabbitmq
+    ports:
+      - "8085:8085"
+    environment:
+      TZ: Asia/Shanghai
+      MINIO_ENDPOINT: http://minio:9000
+    volumes:
+      - ./docker/data/logs/mall-portal:/var/logs
+    networks:
+      - mall-net
