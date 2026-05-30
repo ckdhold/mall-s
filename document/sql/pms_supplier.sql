@@ -11,6 +11,10 @@
     docker exec mall-mysql mysql -uroot -proot --default-character-set=utf8mb4 mall -e "SELECT id,name,code,status FROM pms_supplier;"
 
   或在 Navicat / DBeaver 连接 localhost:3307，库 mall，字符集 utf8mb4，执行本脚本。
+
+  第 2 步（手写 MBG 四件套，参考 PmsBrand/UmsAdmin，无 BLOB）：
+    mall-mbg/.../model/PmsSupplier.java、PmsSupplierExample.java
+    mall-mbg/.../mapper/PmsSupplierMapper.java、PmsSupplierMapper.xml
 */
 
 SET NAMES utf8mb4;
