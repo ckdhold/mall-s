@@ -1,0 +1,3 @@
+[submodule "mall-admin-web-s"]
+	path = mall-admin-web-s
+	url = https://github.com/ckdhold/mall-admin-web-s.git
