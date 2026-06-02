@@ -19,8 +19,13 @@
   第 3 步（mall-admin 业务层，参考 PmsBrand）：
     dto/PmsSupplierParam.java、service/PmsSupplierService.java
     service/impl/PmsSupplierServiceImpl.java、controller/PmsSupplierController.java
-  接口前缀：/supplier（需登录；第 4 步再配菜单与 ums_resource 权限）
-  重建：docker compose build mall-admin && docker compose up -d mall-admin
+  接口前缀：/supplier
+
+  第 4 步（菜单权限 + 前端）：
+    document/sql/pms_supplier_menu.sql
+    mall-admin-web-s：apis/supplier.ts、views/pms/supplier/*、router 路由 name=supplier
+  执行菜单 SQL 后 admin 需重新登录；重建前端：
+    docker compose build mall-admin-web && docker compose up -d mall-admin-web
 */
 
 SET NAMES utf8mb4;

@@ -133,6 +133,26 @@ export const asyncRouterMap: RouteRecordExt[] = [
         meta: { title: '编辑品牌' },
         hidden: true,
       },
+      {
+        path: 'supplier',
+        name: 'supplier',
+        component: () => import('@/views/pms/supplier/index.vue'),
+        meta: { title: '供应商管理', icon: 'product-list' },
+      },
+      {
+        path: 'addSupplier',
+        name: 'addSupplier',
+        component: () => import('@/views/pms/supplier/add.vue'),
+        meta: { title: '添加供应商' },
+        hidden: true,
+      },
+      {
+        path: 'updateSupplier',
+        name: 'updateSupplier',
+        component: () => import('@/views/pms/supplier/update.vue'),
+        meta: { title: '编辑供应商' },
+        hidden: true,
+      },
     ],
   },
   {
