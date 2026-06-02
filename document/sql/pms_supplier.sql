@@ -15,6 +15,12 @@
   第 2 步（手写 MBG 四件套，参考 PmsBrand/UmsAdmin，无 BLOB）：
     mall-mbg/.../model/PmsSupplier.java、PmsSupplierExample.java
     mall-mbg/.../mapper/PmsSupplierMapper.java、PmsSupplierMapper.xml
+
+  第 3 步（mall-admin 业务层，参考 PmsBrand）：
+    dto/PmsSupplierParam.java、service/PmsSupplierService.java
+    service/impl/PmsSupplierServiceImpl.java、controller/PmsSupplierController.java
+  接口前缀：/supplier（需登录；第 4 步再配菜单与 ums_resource 权限）
+  重建：docker compose build mall-admin && docker compose up -d mall-admin
 */
 
 SET NAMES utf8mb4;
